@@ -1,17 +1,14 @@
 <?xml version="1.0"?>
 
 <package>
-  <name>heronsafe</name>
+  <name>proj1_heron</name>
   <version>0.0.0</version>
-  <description>heronsafe</description>
+  <description>proj1_heron</description>
 
-  <author email="daniel.f.campos@inesctec.pt">Daniel Campos</author> 
-  <maintainer email="daniel.f.campos@inesctec.pt">Daniel Campos</maintainer>
+  <author email="carolina.marques1908@gmail.com">Carolina Marques</author> 
+  <maintainer email="carolina.marques1908@gmail.com">Carolina Marques</maintainer>
 
 
-  <!-- One license tag required, multiple allowed, one license per tag -->
-  <!-- Commonly used license strings: -->
-  <!--   BSD, MIT, Boost Software License, GPLv2, GPLv3, LGPLv2.1, LGPLv3 -->
   <license>TODO</license>
 
   <buildtool_depend>catkin</buildtool_depend>

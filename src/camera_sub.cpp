@@ -69,7 +69,7 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 
 int main(int argc, char **argv)
 {
-  ros::init(argc, argv, "image_subcriber_feature");
+  ros::init(argc, argv, "camera_subscriber");
   ros::NodeHandle nh;
   cv::namedWindow("inRange");
 

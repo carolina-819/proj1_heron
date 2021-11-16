@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(heronsafe)
+project(proj1_heron)
 
 add_compile_options(-std=c++11)
 
@@ -38,7 +38,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 ###################################
 
 catkin_package(
-    INCLUDE_DIRS include
+#    INCLUDE_DIRS include
 #    LIBRARIES msg2tf
     CATKIN_DEPENDS nav_msgs sensor_msgs tf gazebo_msgs opencv
 #    DEPENDS 
@@ -55,9 +55,8 @@ include_directories(
 
 
 ## Declare a C++ executable
-add_executable(heronsafe_node src/heronsafe.cpp)
 
-add_executable(image_sub_node src/image_sub.cpp )
+add_executable(camera_subscriber_node src/camera_sub.cpp )
 
 
 
@@ -66,18 +65,14 @@ add_executable(image_sub_node src/image_sub.cpp )
 #set_target_properties(heronsafe_node PROPERTIES OUTPUT_NAME heronsafe PREFIX "")
 
 ## Add cmake target dependencies of the executable
-add_dependencies(heronsafe_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-add_dependencies(image_sub_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(camera_subscriber_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 
 ## Specify libraries to link a library or executable target against
-target_link_libraries(heronsafe_node
-    ${catkin_LIBRARIES}
-)
 
-target_link_libraries(image_sub_node
+target_link_libraries(camera_subscriber_node
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
 )

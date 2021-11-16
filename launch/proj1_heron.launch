@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="image_subcriber_feature" pkg="proj1_heron" type="camera_subscriber_node" />
+</launch>
