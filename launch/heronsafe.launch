@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node name="image_subcriber_feature" pkg="heronsafe" type="image_sub_node" />
+</launch>
