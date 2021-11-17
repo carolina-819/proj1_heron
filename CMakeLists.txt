@@ -56,7 +56,7 @@ include_directories(
 
 ## Declare a C++ executable
 
-add_executable(camera_subscriber_node src/camera_sub.cpp )
+add_executable(camera_subscriber_node src/camera_sub_P1.cpp )
 
 
 
