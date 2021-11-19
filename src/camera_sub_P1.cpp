@@ -71,6 +71,7 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
 */
     std::vector<std::vector<cv::Point>> contours;
 	  std::vector<cv::Vec4i> hierarchy;
+
     cv::findContours(hsv_planes_g[1], contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
     cv::drawContours(imagem, contours, -1, cv::Scalar(255, 0, 0), 1);
     cv::Moments m = cv::moments(hsv_planes_g[1]);
@@ -81,9 +82,36 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     cv::findContours(hsv_planes_r[1], contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
     cv::drawContours(imagem, contours, -1, cv::Scalar(0, 255, 0), 1);
     m = cv::moments(hsv_planes_r[1]);
-    p = cv::Point(m.m10/m.m00, m.m01/m.m00);
+    p = cv::Point(m.m10/m.m00, m.m01/m.m00); 
     //cv::circle(imagem, p, 0.5, cv::Scalar(125, 10, 125), -1);
-    cv::putText(imagem,  "vermelho", cv::Point(p.x, p.y + 0.1), cv::FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 0));
+    //detect shapes
+    std::vector<std::vector<cv::Point>> polyCurves;
+    
+    for (int i = 0; i < contours.size(); i++) {
+        std::vector<cv::Point> current;
+        cv::approxPolyDP(contours[i], current, 1, true);
+
+        if(current.size() > 0){
+            polyCurves.push_back(current);
+        }
+    }
+    cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
+    int siz;
+    std::string type;
+    for(int i = 0; i<polyCurves.size(); i++){
+      siz = polyCurves[i].size();
+      if(siz > 4){
+        bool k = cv::isContourConvex(polyCurves[i]);
+        if(k){
+          type = "circle";
+        }else{
+          type = "cross";
+        }
+      }else{
+        type = "triangle";
+      }
+    }
+    cv::putText(imagem, type + std::to_string(siz), cv::Point(p.x, p.y + 0.1), cv::FONT_HERSHEY_SIMPLEX, 3, (0, 255, 0));
 
     cv::findContours(hsv_planes_b[1], contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
     cv::drawContours(imagem, contours, -1, cv::Scalar(0, 0, 255), 1);
