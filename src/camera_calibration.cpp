@@ -53,7 +53,7 @@ int main(int argc, char **argv){
 
     std::vector<cv::Mat> rvecs, tvecs;
     std::vector<double> stdIntrinsics, stdExtrinsics, perViewErrors;
-    int flags = cv::CALIB_FIX_ASPECT_RATIO + cv::CALIB_FIX_K3 + cv::CALIB_ZERO_TANGENT_DIST + cv::CALIB_FIX_PRINCIPAL_POINT;
+    int flags = cv::CALIB_FIX_ASPECT_RATIO + cv::CALIB_FIX_K3 + cv::CALIB_FIX_PRINCIPAL_POINT;
     cv::Size frameSize(1280, 720);
 
     std::cout << "Calibrating..." << std::endl;
