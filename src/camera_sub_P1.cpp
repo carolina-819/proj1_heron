@@ -4,6 +4,7 @@
 #include <cv_bridge/cv_bridge.h>
 #include <opencv2/features2d.hpp>
 #include "geometry_msgs/Twist.h"
+#include "std_msgs/String.h"
 #include <ros/console.h>
 // cannot be used opencv_contrib::xfeatures not installed in VM
 //#include <opencv2/xfeatures2d.hpp>  
@@ -13,14 +14,16 @@
 
 
 bool init = true;  //flag that is true only at the beginning
-ros::Publisher pub;
+ros::Publisher pub, pub_type;
 geometry_msgs::Twist vel;
 std::vector<std::vector<cv::Point>> polyCurves;
 std::string color, shape, lastcolor = " ", lastshape = " ";
+std_msgs::String mensagem;
+cv::Mat marker_color;
 int siz;
+int state = 0;
 
-std::string detectShape(cv::Mat input){
-  std::string type;
+void detectShape(cv::Mat input){
   std::vector<std::vector<cv::Point>> contours;
   std::vector<cv::Vec4i> hierarchy;
   cv::findContours(input, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_NONE);
@@ -41,17 +44,44 @@ std::string detectShape(cv::Mat input){
     if(siz > 4){
       bool k = cv::isContourConvex(polyCurves[i]);
       if(k){
-        type = "circle";
+        shape = "circle";
       }else{
-        type = "cross";
+        shape = "cross";
       }
     }else{
-      type = "triangle";
+      shape = "triangle";
     }
   }
-  return type;
 }
 
+bool isShapeCentered(cv::Mat input){
+  cv::Moments m = cv::moments(input);
+  cv::Point p(m.m10/m.m00, m.m01/m.m00);
+  if (p.x < 350 && p.x > 250){
+    return true;
+  }else{
+    return false;
+  }
+
+}
+
+int detectColor(cv::Mat red, cv::Mat green, cv::Mat blue){
+  if(cv::countNonZero(red)){
+    color = "red";
+    marker_color = red;
+    return 1;
+  }else if(cv::countNonZero(green)){
+    color = "green";
+    marker_color = green;
+    return 2;
+  }else if(cv::countNonZero(blue)){
+    color = "blue";
+    marker_color = blue;
+    return 3;
+  }else{
+    return 0;
+  }
+}
 
 
 // Callback
@@ -59,7 +89,6 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
 {
   try
   {
-    
     cv::Mat result_green, green_contour, result_blue, blue_contour, result_red, red_contour, result_white, white_contour;
     cv::Mat hsv_image, gray_image;
     cv::Mat maskG, maskR, maskB, maskW;
@@ -84,7 +113,6 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     cv::Mat maskWflood_inv;
     cv::bitwise_not(maskWflood, maskWflood_inv);
     cv::Mat im_out = (maskW | maskWflood_inv);
-    std::string color;
     
     //detect color
     cv::bitwise_and(hsv_image, hsv_image, platform, im_out = im_out);
@@ -101,39 +129,51 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     //hsv_planes[1] // S channel
     //hsv_planes[2] // V channel
 
-    //detect shape
-
-    //detect green
-    if (cv::countNonZero(hsv_planes_g[1]) != 0){
-      color = "green";
-      lastcolor = color;
-      shape = detectShape(hsv_planes_g[1]);
-      lastshape = shape;
-    }else if(cv::countNonZero(hsv_planes_r[1]) != 0){
-      color = "red";
-      lastcolor = color;
-      shape = detectShape(hsv_planes_r[1]);
-      lastshape = shape;
-    }else if(cv::countNonZero(hsv_planes_b[1]) != 0){
-      color = "blue";
-      lastcolor = color;
-      shape = detectShape(hsv_planes_b[1]);
-      lastshape = shape;
-    }else{
-      color = lastcolor;
-      shape = lastshape;
+    //Found a marker
+    int o = detectColor(hsv_planes_r[1], hsv_planes_g[1], hsv_planes_b[1]);
+    //cv::putText(hsv_planes_r[1], std::to_string(o), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
+    if(state == 0 && o != 0){
+      state = 1;
+     
     }
-    cv::putText(imagem, color + " " + shape , cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
+    else if(state == 1 && isShapeCentered(marker_color)){
+      state = 2;
+    }else if(state == 2){
+        detectShape(marker_color);
+        cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
+        cv::putText(imagem, shape, cv::Point(20, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
+    }
+    
+    switch(state){
+      case 0:
+        vel.linear.x=0.0;
+        vel.angular.z=4.0;
+        pub.publish(vel);
+        break;
+      case 1:
+        vel.linear.x=0.0;
+        vel.angular.z=1.0;
+        pub.publish(vel);
+        break;
+      case 2:
+        vel.linear.x=0.0;
+        vel.angular.z=0.0;
+        pub.publish(vel);  
+        mensagem.data = color + " " + shape;
+        pub_type.publish(mensagem);
+    }
   /* if(p.x > 300){ //camara esta à direita do verde
     vel.linear.x=0.0;
     vel.angular.z=-1.0;//Publish the message. 
     }else{*/
-      vel.linear.x=0.0;
-      vel.angular.z=4.0;//Publish the message. 
+      //Publish the message. 
   //  }
-     pub.publish(vel);  
-
+   
+    //pub.publish(vel);  
     
+
+    cv::putText(imagem, std::to_string(state), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
+   
     cv::imshow("inRange", imagem);
 
     cv::waitKey(30);
@@ -155,7 +195,7 @@ int main(int argc, char **argv)
 
   image_transport::ImageTransport it(nh);
   image_transport::Subscriber sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
-  
+  pub_type = nh.advertise<std_msgs::String>("/marker_shape",1);
   pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel",1);
 
   ros::spin();
