@@ -147,7 +147,9 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
         cv::putText(imagem, shape, cv::Point(20, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
         state == -1;
         init == false;
-        flag_pub.publish(init);
+        std_msgs::Bool flag;
+        flag.data = init;
+        flag_pub.publish(flag);
 
     }
     

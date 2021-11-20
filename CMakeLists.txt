@@ -10,6 +10,7 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   cv_bridge
   image_transport
+  std_msgs
 )
 
 find_package(OpenCV)
@@ -40,7 +41,7 @@ include_directories(${OpenCV_INCLUDE_DIRS})
 catkin_package(
 #    INCLUDE_DIRS include
 #    LIBRARIES msg2tf
-    CATKIN_DEPENDS nav_msgs sensor_msgs tf gazebo_msgs opencv
+    CATKIN_DEPENDS nav_msgs sensor_msgs tf gazebo_msgs opencv std_msgs
 #    DEPENDS 
 )
 
@@ -57,6 +58,7 @@ include_directories(
 ## Declare a C++ executable
 
 add_executable(camera_subscriber_node src/camera_sub_P1.cpp )
+add_executable(heron_controller_node src/heron_move_P2.cpp )
 
 
 
@@ -67,6 +69,7 @@ add_executable(camera_subscriber_node src/camera_sub_P1.cpp )
 ## Add cmake target dependencies of the executable
 
 add_dependencies(camera_subscriber_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_dependencies(heron_controller_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 
 
@@ -76,6 +79,11 @@ target_link_libraries(camera_subscriber_node
     ${catkin_LIBRARIES}
     ${OpenCV_LIBRARIES}
 )
+target_link_libraries(heron_controller_node
+${catkin_LIBRARIES}
+${OpenCV_LIBRARIES}
+)
+
 
 #############
 ## Install ##

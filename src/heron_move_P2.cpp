@@ -5,7 +5,7 @@
 #include <opencv2/features2d.hpp>
 #include "geometry_msgs/Twist.h"
 #include "std_msgs/String.h"
-
+#include "std_msgs/Bool.h"
 #include <ros/console.h>
 // cannot be used opencv_contrib::xfeatures not installed in VM
 //#include <opencv2/xfeatures2d.hpp>  
