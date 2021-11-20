@@ -1,0 +1,14 @@
+<camera_values>
+    <distortion_coefficients>
+        <k1>-0.00701382</k1>
+        <k2>-0.037221</k2>
+        <p1>0</p1>
+        <p2>0</p2>
+        <k3>0</k3>
+    </distortion_coefficients>
+    <camera_matrix>
+        [950.64374, 0, 640;
+ 0, 950.64374, 360;
+ 0, 0, 1]
+    </camera_matrix>
+</camera_values>
