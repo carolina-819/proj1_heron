@@ -5,6 +5,7 @@
 #include <opencv2/features2d.hpp>
 #include "geometry_msgs/Twist.h"
 #include "std_msgs/String.h"
+#include "std_msgs/Bool.h"
 #include <ros/console.h>
 // cannot be used opencv_contrib::xfeatures not installed in VM
 //#include <opencv2/xfeatures2d.hpp>  
@@ -13,15 +14,15 @@
 #define MAX_FEATURES 100
 
 
-bool init = true;  //flag that is true only at the beginning
-ros::Publisher pub, pub_type;
+bool init = false;  //flag that requests camera
+ros::Publisher pub, pub_type, flag_pub;
 geometry_msgs::Twist vel;
 std::vector<std::vector<cv::Point>> polyCurves;
 std::string color, shape, lastcolor = " ", lastshape = " ";
 std_msgs::String mensagem;
 cv::Mat marker_color;
 int siz;
-int state = 0;
+int state = -1;
 
 void detectShape(cv::Mat input){
   std::vector<std::vector<cv::Point>> contours;
@@ -132,9 +133,11 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     //Found a marker
     int o = detectColor(hsv_planes_r[1], hsv_planes_g[1], hsv_planes_b[1]);
     //cv::putText(hsv_planes_r[1], std::to_string(o), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-    if(state == 0 && o != 0){
+    if(state == -1 && init == true){
+      state == 0;
+    }
+    else if(state == 0 && o != 0){
       state = 1;
-     
     }
     else if(state == 1 && isShapeCentered(marker_color)){
       state = 2;
@@ -142,6 +145,10 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
         detectShape(marker_color);
         cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
         cv::putText(imagem, shape, cv::Point(20, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
+        state == -1;
+        init == false;
+        flag_pub.publish(init);
+
     }
     
     switch(state){
@@ -152,7 +159,7 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
         break;
       case 1:
         vel.linear.x=0.0;
-        vel.angular.z=1.0;
+        vel.angular.z=4.0;
         pub.publish(vel);
         break;
       case 2:
@@ -187,6 +194,10 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
   
 }
 
+void flagCB(const std_msgs::Bool::ConstPtr& msg){
+  init = msg->data;
+  return;
+}
 int main(int argc, char **argv)
 {
   ros::init(argc, argv, "camera_subscriber");
@@ -194,9 +205,11 @@ int main(int argc, char **argv)
   cv::namedWindow("inRange");
 
   image_transport::ImageTransport it(nh);
+  ros::Subscriber flag_sub = nh.subscribe("/camera_request", 1, flagCB);
   image_transport::Subscriber sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
   pub_type = nh.advertise<std_msgs::String>("/marker_shape",1);
   pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel",1);
+  flag_pub = nh.advertise<std_msgs::Bool>("/camera_request", 1);
 
   ros::spin();
   cv::destroyWindow("inRange");
