@@ -15,7 +15,7 @@
 
 
 bool init = false;  //flag that requests camera
-ros::Publisher pub, pub_type, flag_pub;
+ros::Publisher pub, pub_type_left, pub_type_right, flag_pub;
 geometry_msgs::Twist vel;
 std::vector<std::vector<cv::Point>> polyCurves;
 std::string color, shape, lastcolor = " ", lastshape = " ";
@@ -133,23 +133,33 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     //Found a marker
     int o = detectColor(hsv_planes_r[1], hsv_planes_g[1], hsv_planes_b[1]);
     //cv::putText(hsv_planes_r[1], std::to_string(o), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-    if(state == -1 && init == true){
+    if(state == -1 && init == true){ //requested identification
       state == 0;
     }
-    else if(state == 0 && o != 0){
+    else if(state == 0 && o != 0){ //found markers
       state = 1;
-    }
-    else if(state == 1 && isShapeCentered(marker_color)){
+    }else if(state == 1 && isShapeCentered(marker_color)){ //centered marker
       state = 2;
-    }else if(state == 2){
+    }else if(state == 2){ //identified marker
         detectShape(marker_color);
         cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
         cv::putText(imagem, shape, cv::Point(20, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-        state == -1;
+        state == 3;
+    }else if(state == 3 && o == 0){ //screen blank
+      state = 4;
+    }else if(state == 4 && o != 0){ //found right marker
+      state = 5;
+    }else if(state == 5 && isShapeCentered(marker_color)){ //right marker centered
+      state = 6;
+    }else if(state == 6){ //identified marker
+        detectShape(marker_color);
+        cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
+        cv::putText(imagem, shape, cv::Point(320, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,0,255),2,false);
         init == false;
         std_msgs::Bool flag;
         flag.data = init;
         flag_pub.publish(flag);
+        state = -1;
 
     }
     
@@ -161,7 +171,7 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
         break;
       case 1:
         vel.linear.x=0.0;
-        vel.angular.z=4.0;
+        vel.angular.z=1.0;
         pub.publish(vel);
         break;
       case 2:
@@ -169,7 +179,29 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
         vel.angular.z=0.0;
         pub.publish(vel);  
         mensagem.data = color + " " + shape;
-        pub_type.publish(mensagem);
+        pub_type_left.publish(mensagem);
+      case 3:  
+        vel.linear.x=0.0;
+        vel.angular.z=-4.0;
+        pub.publish(vel);
+        break;
+      case 4:
+        vel.linear.x=0.0;
+        vel.angular.z=-4.0;
+        pub.publish(vel);
+        break;
+      case 5:
+        vel.linear.x=0.0;
+        vel.angular.z=-1.0;
+        pub.publish(vel);
+        break;
+      case 6: 
+        vel.linear.x=0.0;
+        vel.angular.z=0.0;
+        pub.publish(vel);  
+        mensagem.data = color + " " + shape;
+        pub_type_right.publish(mensagem);
+
     }
   /* if(p.x > 300){ //camara esta à direita do verde
     vel.linear.x=0.0;
@@ -209,7 +241,8 @@ int main(int argc, char **argv)
   image_transport::ImageTransport it(nh);
   ros::Subscriber flag_sub = nh.subscribe("/camera_request", 1, flagCB);
   image_transport::Subscriber sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
-  pub_type = nh.advertise<std_msgs::String>("/marker_shape",1);
+  pub_type_left = nh.advertise<std_msgs::String>("/marker_shape_left",1);
+  pub_type_right = nh.advertise<std_msgs::String>("/marker_shape_right",1);
   pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel",1);
   flag_pub = nh.advertise<std_msgs::Bool>("/camera_request", 1);
 
