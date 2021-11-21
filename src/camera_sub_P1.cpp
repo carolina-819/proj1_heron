@@ -15,6 +15,10 @@
 
 
 bool init = false;  //flag that requests camera
+<<<<<<< HEAD
+=======
+ros::Publisher pub, pub_type_left, pub_type_right, flag_pub, pub_centered;
+>>>>>>> main
 geometry_msgs::Twist vel;
 ros::Publisher pub_type_left, pub_type_right, pub;
 std::vector<std::vector<cv::Point>> polyCurves;
@@ -23,6 +27,7 @@ std_msgs::String mensagemL, mensagemR;
 cv::Mat marker_color;
 int siz,  lastcolor;
 int state = -1;
+std_msgs::Bool aux;
 
 std::string detectShape(cv::Mat input){
   std::string shape;
@@ -237,8 +242,17 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
       //Publish the message. 
   //  }
    
-    //pub.publish(vel);  
-    
+    //pub.publish(vel);
+
+    if(isShapeCentered(marker_color)){
+      aux.data=true;
+      pub_centered.publish(aux);
+    }
+    else{
+      aux.data=false;
+      pub_centered.publish(aux);
+    }
+
 
     cv::putText(imagem, std::to_string(state) + std::to_string(init), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
    
@@ -251,8 +265,11 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
   {
     ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
   }
+<<<<<<< HEAD
   
   
+=======
+>>>>>>> main
 }
 
 void flagCB(const std_msgs::Bool::ConstPtr& msg){
@@ -267,6 +284,7 @@ int main(int argc, char **argv)
   ros::init(argc, argv, "camera_subscriber");
   ros::NodeHandle nh;
   image_transport::ImageTransport it(nh);
+<<<<<<< HEAD
   ros::Subscriber flagReq;
   image_transport::Subscriber sub_left;
   cv::namedWindow("inRange");
@@ -277,6 +295,11 @@ int main(int argc, char **argv)
   flagReq = nh.subscribe("/camera_request", 1, flagCB);
   ros::spinOnce();
   sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
+=======
+  ros::Subscriber flag_sub = nh.subscribe("/camera_request", 1, flagCB);
+  pub_centered = nh.advertise<std_msgs::Bool>("/centered", 1);
+  image_transport::Subscriber sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
+>>>>>>> main
   pub_type_left = nh.advertise<std_msgs::String>("/marker_shape_left",1);
   pub_type_right = nh.advertise<std_msgs::String>("/marker_shape_right",1);
   pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel",1);
@@ -289,6 +312,8 @@ int main(int argc, char **argv)
   
   
   //flag_pub = nh.advertise<std_msgs::Bool>("/camera_request", 1);
+
+  
 
   ros::spin();
   cv::destroyWindow("inRange");
