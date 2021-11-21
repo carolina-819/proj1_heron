@@ -48,9 +48,9 @@ void poseCB(const nav_msgs::Odometry::ConstPtr& msg){
         flag_pub.publish(men);
     }
     if(stateR != "not ready"){
-        vel.linear.x = 0.0;
-        vel.angular.z = 10.0;
-        vel_pub.publish(vel);
+     //   vel.linear.x = 0.0;
+     //   vel.angular.z = 10.0;
+     //   vel_pub.publish(vel);
     }
      //vel.linear.x = 4.0;
     
