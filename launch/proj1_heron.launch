@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
 <launch>
-    <node name="image_subcriber_feature" pkg="proj1_heron" type="camera_subscriber_node" />
-    <node name="heron_move_feature" pkg="proj1_heron" type="heron_controller_node" />
+    <node name="image_subcriber_feature" pkg="proj1_heron" type="camera_subscriber_node" output="screen"/>
+    <node name="heron_move_feature" pkg="proj1_heron" type="heron_controller_node" output="screen"/>
 </launch>
