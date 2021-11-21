@@ -7,8 +7,8 @@
         <k3>0</k3>
     </distortion_coefficients>
     <camera_matrix>
-        [953.66913, 0, 640;
- 0, 953.66913, 360;
+        [953.6691426550466, 0, 640;
+ 0, 953.6691426550466, 360;
  0, 0, 1]
     </camera_matrix>
 </camera_values>

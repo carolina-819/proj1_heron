@@ -48,7 +48,7 @@ int main(int argc, char **argv){
 
         i++;
     }
-    cv::Matx33f K(cv::Matx33f::eye());  // intrinsic camera matrix
+    cv::Mat K(cv::Matx33f::eye());  // intrinsic camera matrix
     cv::Vec<float, 5> k(0, 0, 0, 0, 0); // distortion coefficients
 
     std::vector<cv::Mat> rvecs, tvecs;

@@ -15,7 +15,7 @@
 
 
 bool init = false;  //flag that requests camera
-ros::Publisher pub, pub_type_left, pub_type_right, flag_pub;
+ros::Publisher pub, pub_type_left, pub_type_right, flag_pub, pub_centered;
 geometry_msgs::Twist vel;
 std::vector<std::vector<cv::Point>> polyCurves;
 std::string color, shape, lastcolor = " ", lastshape = " ";
@@ -23,6 +23,7 @@ std_msgs::String mensagem;
 cv::Mat marker_color;
 int siz;
 int state = -1;
+std_msgs::Bool aux;
 
 void detectShape(cv::Mat input){
   std::vector<std::vector<cv::Point>> contours;
@@ -210,8 +211,17 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
       //Publish the message. 
   //  }
    
-    //pub.publish(vel);  
-    
+    //pub.publish(vel);
+
+    if(isShapeCentered(marker_color)){
+      aux.data=true;
+      pub_centered.publish(aux);
+    }
+    else{
+      aux.data=false;
+      pub_centered.publish(aux);
+    }
+
 
     cv::putText(imagem, std::to_string(state), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
    
@@ -223,9 +233,6 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
   {
     ROS_ERROR("Could not convert from '%s' to 'bgr8'.", msg->encoding.c_str());
   }
-  
-  
-  
 }
 
 void flagCB(const std_msgs::Bool::ConstPtr& msg){
@@ -240,11 +247,14 @@ int main(int argc, char **argv)
 
   image_transport::ImageTransport it(nh);
   ros::Subscriber flag_sub = nh.subscribe("/camera_request", 1, flagCB);
+  pub_centered = nh.advertise<std_msgs::Bool>("/centered", 1);
   image_transport::Subscriber sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
   pub_type_left = nh.advertise<std_msgs::String>("/marker_shape_left",1);
   pub_type_right = nh.advertise<std_msgs::String>("/marker_shape_right",1);
   pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel",1);
   flag_pub = nh.advertise<std_msgs::Bool>("/camera_request", 1);
+
+  
 
   ros::spin();
   cv::destroyWindow("inRange");
