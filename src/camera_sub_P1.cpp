@@ -7,6 +7,8 @@
 #include "std_msgs/String.h"
 #include "std_msgs/Bool.h"
 #include <ros/console.h>
+#include "std_msgs/Int8.h"
+#include "std_msgs/Float32.h"
 // cannot be used opencv_contrib::xfeatures not installed in VM
 //#include <opencv2/xfeatures2d.hpp>  
 
@@ -18,12 +20,12 @@ bool init = false;  //flag that requests camera
 ros::Publisher pub, pub_type_left, pub_type_right, pub_centered;
 geometry_msgs::Twist vel;
 std::vector<std::vector<cv::Point>> polyCurves;
-std::string color, lastshape = " ";
-std_msgs::String mensagemL, mensagemR;
+std::string color, colorR, colorL, lastshape = " ", formaL, formaR;;
+std_msgs::Int8 mensagemL, mensagemR;
 cv::Mat marker_color;
 int siz,  lastcolor;
 int state = -1;
-std_msgs::Bool aux;
+std_msgs::Float32 aux;
 
 std::string detectShape(cv::Mat input){
   std::string shape;
@@ -41,7 +43,7 @@ std::string detectShape(cv::Mat input){
           polyCurves.push_back(current);
       }
   }
-  //cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
+  
   for(int i = 0; i<polyCurves.size(); i++){
     siz = polyCurves[i].size();
     if(siz > 4){
@@ -58,14 +60,13 @@ std::string detectShape(cv::Mat input){
   return shape;
 }
 
-bool isShapeCentered(cv::Mat input){
-  ROS_INFO("CENTROU?");
+std::tuple<bool, float> isShapeCentered(cv::Mat input){
   cv::Moments m = cv::moments(input);
   cv::Point p(m.m10/m.m00, m.m01/m.m00);
   if (p.x < 350 && p.x > 250){
-    return true;
+    return std::tuple<bool, float>{true, p.x};
   }else{
-    return false;
+    return std::tuple<bool, float>{false, p.x};
   }
 
 }
@@ -88,13 +89,23 @@ int detectColor(cv::Mat red, cv::Mat green, cv::Mat blue){
   }
 }
 
+int shapeToInt(std::string sh){
+  if(sh == "circle"){
+    return 1;
+  }else if(sh == "triangle"){
+    return 2;
+  }else if(sh == "cross"){
+    return 3;
+  }else{
+    return -1;
+  }
+}
 
 // Callback
 void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
 {
-  std::string formaL, formaR;
+  
   int corL, corR;
-  ROS_INFO("entrou\n ");
   try
   {
     
@@ -139,24 +150,24 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     //hsv_planes[2] // V channel
 
     //Found a marker
+
     int o = detectColor(hsv_planes_r[1], hsv_planes_g[1], hsv_planes_b[1]);
     
-    if(isShapeCentered(marker_color)){
-
-      aux.data=true;
+    if(std::get<0>(isShapeCentered(marker_color))){
+      aux.data=std::get<1>(isShapeCentered(marker_color));
       pub_centered.publish(aux);
     }
     else{
-      aux.data=false;
+      aux.data=std::get<1>(isShapeCentered(marker_color));
       pub_centered.publish(aux);
     }
     //ROS_INFO("cor %d ", o);
-    //cv::putText(hsv_planes_r[1], std::to_string(o), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-    if(init){
+    
+   if(init){
 
     if(state == -1){
-      mensagemL.data = "not ready";
-      mensagemR.data = "not ready";
+      mensagemL.data = -1;
+      mensagemR.data = -1;
     }
     if(state == -1 && init == true){ //requested identification
       state = 0;
@@ -164,34 +175,28 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
     else if(state == 0 && o != 0){ //found markers
       state = 1;
       lastcolor = detectColor(hsv_planes_r[1], hsv_planes_g[1], hsv_planes_b[1]);
-    }else if(state == 1 && isShapeCentered(marker_color)){ //centered marker
-      state = 2;
-    }else if(state == 2){ //identified marker
+      colorL = color;
+    }else if(state == 1 && std::get<0>(isShapeCentered(marker_color))){ //centered marker
+       //identified marker
         corL = lastcolor;
         formaL = detectShape(marker_color);
-        mensagemL.data = std::to_string(corL) + " " + formaL;
+        mensagemL.data = (corL * 10) + shapeToInt(formaL);
         //cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
-        state = 3;
-    }else if(state == 3 && o == 0){ //screen blank
-
-      state = 4;
-    }else if(state == 4 && o != 0){ //found right marker
+        state = 2;
+    }else if(state == 2 && o == 0){ //screen blank
+      state = 3;
+    }else if(state == 3 && o != 0){ //found right marker
       lastcolor = detectColor(hsv_planes_r[1], hsv_planes_g[1], hsv_planes_b[1]);
-      state = 5;
-    }else if(state == 5 && isShapeCentered(marker_color)){ //right marker centered
-      state = 6;
-    }else if(state == 6){ //identified marker
+      colorR = color;
+      state = 4;
+    }else if(state == 4 && std::get<0>(isShapeCentered(marker_color))){ //right marker centered
         corR = lastcolor;
         formaR = detectShape(marker_color);
-        mensagemR.data = std::to_string(corR) + " " + formaR;
-        cv::drawContours(imagem, polyCurves, -1, cv::Scalar(0, 255, 0), 1);
-        init == false;
-        //std_msgs::Bool flag_;
-        //flag_.data = init;
-        //flag_pub.publish(flag_);
-        //state = 7;
+        mensagemR.data = (corR * 10) + shapeToInt(formaR);
+      state = 5;
+      init == false;
     }
-    
+
     switch(state){
       case -1:
         break;
@@ -202,64 +207,45 @@ void imageLeftCB(const sensor_msgs::ImageConstPtr& msg)
         break;
       case 1:
         vel.linear.x=0.0;
-        vel.angular.z=1.0;
+        vel.angular.z=2.0;
         pub.publish(vel);
         break;
-      case 2:
-        vel.linear.x=0.0;
-        vel.angular.z=0.0;
-        pub.publish(vel);  
-        mensagemL.data = std::to_string(corL) + " " + formaL;
-        mensagemR.data = "not ready";
-        break;
-      case 3:  
-       // ROS_INFO("estado 3: %d ", lastcolor);
+      case 2:  
         vel.linear.x=0.0;
         vel.angular.z=-4.0;
         pub.publish(vel);
-        mensagemR.data = "not ready";
+        cv::putText(imagem, "left marker: " + formaL + " " + colorL, cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,0,0),0.5,false);
+        break;
+      case 3:
+        vel.linear.x=0.0;
+        vel.angular.z=-4.0;
+        pub.publish(vel);
+        cv::putText(imagem, "left marker: " + formaL + " " + colorL, cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,0,0),0.5,false);
         break;
       case 4:
         vel.linear.x=0.0;
-        vel.angular.z=-4.0;
+        vel.angular.z=-2.0;
         pub.publish(vel);
-        mensagemR.data = "not ready";
+        cv::putText(imagem, "left marker: " + formaL + " " + colorL, cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,0,0),0.5,false);
         break;
-      case 5:
-        vel.linear.x=0.0;
-        vel.angular.z=-1.0;
-        pub.publish(vel);
-        break;
-      case 6: 
+      case 5: 
         vel.linear.x=0.0;
         vel.angular.z=0.0;
         pub.publish(vel);  
+        cv::putText(imagem, "left marker: " + formaL + " " + colorL, cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,0,0),0.5,false);
+        //cv::drawContours(imagem, polyCurves, -1, cv::Scalar(255, 0, 0), 1);
+        cv::putText(imagem, "right marker: " + formaR + " " + colorR, cv::Point(20, 50) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,0,0),0.5,false);
         break;
-      case 7:
-        break;
+     
     }
     pub_type_left.publish(mensagemL);
     pub_type_right.publish(mensagemR);
-    cv::putText(imagem, formaL, cv::Point(20, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-    cv::putText(imagem, formaR, cv::Point(20, 40) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-  /* if(p.x > 300){ //camara esta à direita do verde
-    vel.linear.x=0.0;
-    vel.angular.z=-1.0;//Publish the message. 
-    }else{*/
-      //Publish the message. 
-  //  }
    
-    //pub.publish(vel);
-
    
-
-
-    cv::putText(imagem, std::to_string(state) + std::to_string(init), cv::Point(20, 20) ,cv::FONT_HERSHEY_DUPLEX,1,cv::Scalar(0,255,0),2,false);
-   
-    cv::imshow("inRange", im_out);
+    cv::imshow("inRange", imagem);
 
     cv::waitKey(30);
-    }
+   }
   }
   catch (cv_bridge::Exception& e)
   {
@@ -291,9 +277,9 @@ int main(int argc, char **argv)
   flagReq = nh.subscribe("/camera_request", 1, flagCB);
   ros::spinOnce();
   sub_left = it.subscribe("camera/left/image_raw", 1, imageLeftCB);
-  pub_centered = nh.advertise<std_msgs::Bool>("/centered", 1);
-  pub_type_left = nh.advertise<std_msgs::String>("/marker_shape_left",1);
-  pub_type_right = nh.advertise<std_msgs::String>("/marker_shape_right",1);
+  pub_centered = nh.advertise<std_msgs::Float32>("/centered", 1);
+  pub_type_left = nh.advertise<std_msgs::Int8>("/marker_shape_left",1);
+  pub_type_right = nh.advertise<std_msgs::Int8>("/marker_shape_right",1);
   pub = nh.advertise<geometry_msgs::Twist>("/cmd_vel",1);
   
   
